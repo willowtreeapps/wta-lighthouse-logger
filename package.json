@@ -5,14 +5,16 @@
   "author": "two7sclash <james.fishwick@willowtreeapps.com>",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "connect": "node app.js"
   },
   "devDependencies": {
     "lighthouse": "^1.x"
   },
   "dependencies": {
     "circular-json": "^0.3.1",
-    "headless-chromium": "0.0.1-prerelease.1"
+    "headless-chromium": "0.0.1-prerelease.1",
+    "mongodb": "^2.2.28"
   },
   "keywords": [],
   "description": ""
