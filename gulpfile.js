@@ -42,7 +42,7 @@ const startServer = function() {
  * Stop server
  */
 const stopServer = function() {
-  connect.serverClose();
+  // connect.serverClose();
   chromeLauncher.kill();
   chromeLauncher = null;
 };
@@ -83,7 +83,7 @@ gulp.task('lighthouse', function() {
   chromeLauncher = new ChromeLauncher();
 
   return chromeLauncher.run().then(_ => {
-    startServer();
+    // startServer();
     return runLighthouse()
       .then(handleOk)
       .catch(handleError);
