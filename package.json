@@ -5,11 +5,9 @@
   "author": "two7sclash <james.fishwick@willowtreeapps.com>",
   "license": "MIT",
   "scripts": {
-    "start": "gulp"
+    "start": "node index.js"
   },
   "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-connect": "^5.0.0",
     "lighthouse": "^1.x"
   },
   "dependencies": {

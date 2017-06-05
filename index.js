@@ -16,32 +16,19 @@
  * limitations under the License.
  */
 
-const gulp = require('gulp');
-const connect = require('gulp-connect');
 const lighthouse = require('lighthouse');
 const ChromeLauncher = require('lighthouse/lighthouse-cli/chrome-launcher').ChromeLauncher;
 const perfConfig = require('lighthouse/lighthouse-core/config/perf.json');
 const log = require('lighthouse/lighthouse-core/lib/log');
 const CircularJSON = require('circular-json');
 
-const PORT = 8080;
 let chromeLauncher;
 
-/**
- * Start server
- */
-const startServer = function() {
-  return connect.server({
-    root: './public',
-    livereload: true,
-    port: PORT
-  });
-};
 
 /**
- * Stop server
+ * Stop cL
  */
-const stopServer = function() {
+const stopCL = function() {
   // connect.serverClose();
   chromeLauncher.kill();
   chromeLauncher = null;
@@ -74,12 +61,12 @@ const handleOk = function(results) {
  * Handle error
  */
 const handleError = function(e) {
-  stopServer();
+  stopCL();
   console.error(e); // eslint-disable-line no-console
   throw e; // Throw to exit process with status 1.
 };
 
-gulp.task('lighthouse', function() {
+const init = function() {
   chromeLauncher = new ChromeLauncher();
 
   return chromeLauncher.run().then(_ => {
@@ -88,6 +75,8 @@ gulp.task('lighthouse', function() {
       .then(handleOk)
       .catch(handleError);
   });
-});
+};
 
-gulp.task('default', ['lighthouse']);
+init();
+
+
