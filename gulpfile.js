@@ -51,7 +51,8 @@ const stopServer = function() {
  * Run lighthouse
  */
 const runLighthouse = function() {
-  const url = `http://localhost:${PORT}/index.html`;
+  const url = "https://willowtreeapps.com"
+  //const url = `http://localhost:${PORT}/index.html`;
   const lighthouseOptions = {logLevel: 'info', output: 'json'}; // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
   log.setLevel(lighthouseOptions.logLevel);
   return lighthouse(url, lighthouseOptions, perfConfig);
