@@ -50,7 +50,7 @@ const runLighthouse = function() {
  * @param {Object} results - Lighthouse results
  */
 const handleOk = function(results) {
-  stopServer();
+  stopCL();
   console.log(CircularJSON.stringify(results)); // eslint-disable-line no-console
   // TODO: use lighthouse results for checking your performance expectations.
   // e.g. process.exit(1) or throw Error if score falls below a certain threshold.
