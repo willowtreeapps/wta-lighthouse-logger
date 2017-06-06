@@ -1,27 +1,36 @@
-'use strict';
-
-/**
- * Copyright 2017 Google Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 const lighthouse = require('lighthouse');
 const ChromeLauncher = require('lighthouse/lighthouse-cli/chrome-launcher').ChromeLauncher;
 const perfConfig = require('lighthouse/lighthouse-core/config/perf.json');
 const log = require('lighthouse/lighthouse-core/lib/log');
 const CircularJSON = require('circular-json');
 const got = require('got');
+const MongoClient = require('mongodb').MongoClient;
+const assert = require('assert');
+
+// Connection URL
+const url = 'mongodb://heroku_9sb7jt3f:i25u4fst07hgnvcnrb25kba3pj@ds031607.mlab.com:31607/heroku_9sb7jt3f';
+// Use connect method to connect to the Server
+const insertDocuments = function(db, doc, callback) {
+  // Get the documents collection
+    const collection = db.collection(doc);
+  // Insert some documents
+    collection.insertOne(doc, function(err, result) {
+        assert.equal(err, null);
+        console.log('Inserted document into the document collection');
+        callback(result);
+    });
+};
+const connectToDB = (collection, doc) => {
+    return MongoClient.connect(url, function(err, db) {
+        assert.equal(null, err); 
+        console.log('Connected correctly to server');
+
+        insertDocuments(db, doc, function() {
+            db.close();
+        });
+    });
+};
+
 
 let chromeLauncher;
 
@@ -29,48 +38,47 @@ let chromeLauncher;
  * Start cL
  */
 const startPS = function() {
-  got( 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed?url=https://willowtreeapps.com&strategy=mobile&key=AIzaSyCimlxrolGkuhGYp5JF_HJVUB0QrZtNzyo')
+    got( 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed?url=https://willowtreeapps.com&strategy=mobile&key=AIzaSyCimlxrolGkuhGYp5JF_HJVUB0QrZtNzyo')
       .then(response => {
-          console.log(response.body);
-          //=> '<!doctype html> ...' 
+          console.log('pagespeed');
+          connectToDB('pagespeed', response.body);
       })
       .catch(error => {
           console.log(error.response.body);
           //=> 'Internal server error ...' 
       });
-}
-
+};
 /**
  * Start cL
  */
- const startCL = function() {
-   chromeLauncher = new ChromeLauncher();
-   return chromeLauncher.run().then(_ => {
+const startCL = function() {
+    chromeLauncher = new ChromeLauncher();
+    return chromeLauncher.run().then(_ => {
      // startServer();
-     return runLighthouse()
+        return runLighthouse()
        .then(handleOk)
        .catch(handleError);
-   });
- };
+    });
+};
 
 /**
  * Stop cL
  */
 const stopCL = function() {
   // connect.serverClose();
-  chromeLauncher.kill();
-  chromeLauncher = null;
+    chromeLauncher.kill();
+    chromeLauncher = null;
 };
 
 /**
  * Run lighthouse
  */
 const runLighthouse = function() {
-  const url = "https://willowtreeapps.com"
+    const url = 'https://willowtreeapps.com';
   //const url = `http://localhost:${PORT}/index.html`;
-  const lighthouseOptions = {logLevel: 'info', output: 'json'}; // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
-  log.setLevel(lighthouseOptions.logLevel);
-  return lighthouse(url, lighthouseOptions, perfConfig);
+    const lighthouseOptions = {logLevel: 'info', output: 'json',}; // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
+    log.setLevel(lighthouseOptions.logLevel);
+    return lighthouse(url, lighthouseOptions, perfConfig);
 };
 
 /**
@@ -78,25 +86,27 @@ const runLighthouse = function() {
  * @param {Object} results - Lighthouse results
  */
 const handleOk = function(results) {
-  stopCL();
-  console.log(CircularJSON.stringify(results)); // eslint-disable-line no-console
+    stopCL();
+    const circumscribedRes = CircularJSON.stringify(results);
+    console.log('lighthouse'); // eslint-disable-line no-console
+    connectToDB('lighthouse', circumscribedRes);
   // TODO: use lighthouse results for checking your performance expectations.
   // e.g. process.exit(1) or throw Error if score falls below a certain threshold.
-  return results;
+    return results;
 };
 
 /**
  * Handle error
  */
 const handleError = function(e) {
-  stopCL();
-  console.error(e); // eslint-disable-line no-console
-  throw e; // Throw to exit process with status 1.
+    stopCL();
+    console.error(e); // eslint-disable-line no-console
+    throw e; // Throw to exit process with status 1.
 };
 
 const init = function() {
-  startPS();
-  startCL();
+    startPS();
+    startCL();
 };
 
 init();
