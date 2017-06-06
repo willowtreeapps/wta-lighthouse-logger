@@ -21,9 +21,37 @@ const ChromeLauncher = require('lighthouse/lighthouse-cli/chrome-launcher').Chro
 const perfConfig = require('lighthouse/lighthouse-core/config/perf.json');
 const log = require('lighthouse/lighthouse-core/lib/log');
 const CircularJSON = require('circular-json');
+const got = require('got');
 
 let chromeLauncher;
 
+/**
+ * Start cL
+ */
+const startPS = function() {
+  got( 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed?url=https://willowtreeapps.com&strategy=mobile&key=AIzaSyCimlxrolGkuhGYp5JF_HJVUB0QrZtNzyo')
+      .then(response => {
+          console.log(response.body);
+          //=> '<!doctype html> ...' 
+      })
+      .catch(error => {
+          console.log(error.response.body);
+          //=> 'Internal server error ...' 
+      });
+}
+
+/**
+ * Start cL
+ */
+ const startCL = function() {
+   chromeLauncher = new ChromeLauncher();
+   return chromeLauncher.run().then(_ => {
+     // startServer();
+     return runLighthouse()
+       .then(handleOk)
+       .catch(handleError);
+   });
+ };
 
 /**
  * Stop cL
@@ -67,14 +95,8 @@ const handleError = function(e) {
 };
 
 const init = function() {
-  chromeLauncher = new ChromeLauncher();
-
-  return chromeLauncher.run().then(_ => {
-    // startServer();
-    return runLighthouse()
-      .then(handleOk)
-      .catch(handleError);
-  });
+  startPS();
+  startCL();
 };
 
 init();

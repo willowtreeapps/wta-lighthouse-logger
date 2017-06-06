@@ -2,7 +2,7 @@ var MongoClient = require('mongodb').MongoClient
   , assert = require('assert');
 
 // Connection URL
-var url = 'mongodb://heroku_9sb7jt3f:NxuovgQ2R2@ds031607.mlab.com:31607/heroku_9sb7jt3f';
+var url = 'mongodb://heroku_9sb7jt3f:i25u4fst07hgnvcnrb25kba3pj@ds031607.mlab.com:31607/heroku_9sb7jt3f';
 // Use connect method to connect to the Server
 var insertDocuments = function(db, callback) {
   // Get the documents collection
