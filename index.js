@@ -6,17 +6,16 @@ const CircularJSON = require('circular-json');
 const got = require('got');
 const MongoClient = require('mongodb').MongoClient;
 const assert = require('assert');
-
 // Connection URL
 const url = 'mongodb://heroku_9sb7jt3f:i25u4fst07hgnvcnrb25kba3pj@ds031607.mlab.com:31607/heroku_9sb7jt3f';
 // Use connect method to connect to the Server
-const insertDocuments = function(db, doc, callback) {
+const insertDocuments = function(db, collection, doc, callback) {
   // Get the documents collection
-    const collection = db.collection(doc);
+    const col = db.collection(collection);
   // Insert some documents
-    collection.insertOne(doc, function(err, result) {
+    col.insertOne(doc, function(err, result) {
         assert.equal(err, null);
-        console.log('Inserted document into the document collection');
+        console.log(`Inserted document into the ${collection} collection`);
         callback(result);
     });
 };
@@ -25,7 +24,7 @@ const connectToDB = (collection, doc) => {
         assert.equal(null, err); 
         console.log('Connected correctly to server');
 
-        insertDocuments(db, doc, function() {
+        insertDocuments(db, collection, doc, function() {
             db.close();
         });
     });
@@ -40,8 +39,8 @@ let chromeLauncher;
 const startPS = function() {
     got( 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed?url=https://willowtreeapps.com&strategy=mobile&key=AIzaSyCimlxrolGkuhGYp5JF_HJVUB0QrZtNzyo')
       .then(response => {
-          console.log('pagespeed');
-          connectToDB('pagespeed', response.body);
+          console.log('Analyzing Pagespeed Metrics');
+          connectToDB('pagespeed', JSON.parse(response.body));
       })
       .catch(error => {
           console.log(error.response.body);
@@ -57,6 +56,13 @@ const startCL = function() {
      // startServer();
         return runLighthouse()
        .then(handleOk)
+       .then( results => {
+           console.log('results');
+           const circumscribedRes = CircularJSON.stringify(results);
+           console.log('Analyzing Lighthouse Metrics'); // eslint-disable-line no-console
+         //console.log(circumscribedRes);
+           connectToDB('lighthouse', circumscribedRes);
+       })
        .catch(handleError);
     });
 };
@@ -76,8 +82,8 @@ const stopCL = function() {
 const runLighthouse = function() {
     const url = 'https://willowtreeapps.com';
   //const url = `http://localhost:${PORT}/index.html`;
-    const lighthouseOptions = {logLevel: 'info', output: 'json',}; // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
-    log.setLevel(lighthouseOptions.logLevel);
+    const lighthouseOptions = {/*logLevel: 'info',*/ output: 'json',}; // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
+    //log.setLevel(lighthouseOptions.logLevel);
     return lighthouse(url, lighthouseOptions, perfConfig);
 };
 
@@ -87,9 +93,7 @@ const runLighthouse = function() {
  */
 const handleOk = function(results) {
     stopCL();
-    const circumscribedRes = CircularJSON.stringify(results);
-    console.log('lighthouse'); // eslint-disable-line no-console
-    connectToDB('lighthouse', circumscribedRes);
+    console.log('handle ok');
   // TODO: use lighthouse results for checking your performance expectations.
   // e.g. process.exit(1) or throw Error if score falls below a certain threshold.
     return results;
