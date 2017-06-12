@@ -1,35 +1,33 @@
 const lighthouse = require('lighthouse');
 const ChromeLauncher = require('lighthouse/lighthouse-cli/chrome-launcher').ChromeLauncher;
 const perfConfig = require('lighthouse/lighthouse-core/config/perf.json');
-const log = require('lighthouse/lighthouse-core/lib/log');
-const CircularJSON = require('circular-json');
 const got = require('got');
 const MongoClient = require('mongodb').MongoClient;
 const assert = require('assert');
 // Connection URL
 const url = 'mongodb://heroku_9sb7jt3f:i25u4fst07hgnvcnrb25kba3pj@ds031607.mlab.com:31607/heroku_9sb7jt3f';
+
 // Use connect method to connect to the Server
 const insertDocuments = function(db, collection, doc, callback) {
   // Get the documents collection
     const col = db.collection(collection);
   // Insert some documents
-    col.insertOne(doc, function(err, result) {
+    col.insertOne(doc, {check_keys: false,}, function(err, result) {
         assert.equal(err, null);
         console.log(`Inserted document into the ${collection} collection`);
         callback(result);
     });
 };
 const connectToDB = (collection, doc) => {
-    return MongoClient.connect(url, function(err, db) {
+    console.log('Trying to connect to MongoDB server.');
+    return MongoClient.connect(url,function(err, db) {
         assert.equal(null, err); 
         console.log('Connected correctly to server');
-
         insertDocuments(db, collection, doc, function() {
             db.close();
         });
     });
 };
-
 
 let chromeLauncher;
 
@@ -56,13 +54,7 @@ const startCL = function() {
      // startServer();
         return runLighthouse()
        .then(handleOk)
-       .then( results => {
-           console.log('results');
-           const circumscribedRes = CircularJSON.stringify(results);
-           console.log('Analyzing Lighthouse Metrics'); // eslint-disable-line no-console
-         //console.log(circumscribedRes);
-           connectToDB('lighthouse', circumscribedRes);
-       })
+       .then(stopCL)
        .catch(handleError);
     });
 };
@@ -72,8 +64,49 @@ const startCL = function() {
  */
 const stopCL = function() {
   // connect.serverClose();
+    console.log('trying to kill');
     chromeLauncher.kill();
     chromeLauncher = null;
+    console.log('killed');
+};
+
+const getOverallScore = function (lighthouseResults) {    
+    const scoredAggregations = lighthouseResults.aggregations.filter(a => a.scored);
+    console.log('scoredAggregations', scoredAggregations);
+    const total = scoredAggregations.reduce((sum, aggregation) => sum + aggregation.total, 0);
+    console.log('totes', total);
+    return (total / scoredAggregations.length) * 100;
+};
+
+// Pulling out the metrics we are interested in
+const generateTrackableReport = function (audit) {
+    const reports = [
+        'first-meaningful-paint',
+        'speed-index-metric',
+        'estimated-input-latency',
+        'time-to-interactive',
+        //'total-byte-weight',
+        'dom-size',
+    ];
+
+    const obj = {
+        score: Math.round(audit.score),
+        results: {},
+    };
+
+    reports.forEach(report => {
+        obj.results[report] = getRequiredAuditMetrics(audit.results.audits[report]);
+    });
+    return obj;
+};
+
+// getting the values we interested in
+const getRequiredAuditMetrics = function(metrics) {
+    return {
+        score: metrics.score,
+        value: metrics.rawValue,
+        optimal: metrics.optimalValue,
+    };
 };
 
 /**
@@ -92,8 +125,12 @@ const runLighthouse = function() {
  * @param {Object} results - Lighthouse results
  */
 const handleOk = function(results) {
-    stopCL();
-    console.log('handle ok');
+    console.log('Analyzing Lighthouse Metrics'); // eslint-disable-line no-console
+    const metrics = generateTrackableReport({
+        //score: getOverallScore(results),
+        results,
+    });
+    connectToDB('lighthouse', metrics);        
   // TODO: use lighthouse results for checking your performance expectations.
   // e.g. process.exit(1) or throw Error if score falls below a certain threshold.
     return results;
@@ -108,11 +145,7 @@ const handleError = function(e) {
     throw e; // Throw to exit process with status 1.
 };
 
-const init = function() {
-    startPS();
-    startCL();
-};
-
-init();
+startPS();
+startCL();
 
 
