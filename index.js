@@ -1,11 +1,17 @@
 const lighthouse = require('lighthouse');
-const ChromeLauncher = require('lighthouse/lighthouse-cli/chrome-launcher').ChromeLauncher;
+const chromeLauncher = require('chrome-launcher');
 const perfConfig = require('lighthouse/lighthouse-core/config/perf.json');
 const got = require('got');
 const MongoClient = require('mongodb').MongoClient;
 const assert = require('assert');
-// Connection URL
-const url = 'mongodb://heroku_9sb7jt3f:i25u4fst07hgnvcnrb25kba3pj@ds031607.mlab.com:31607/heroku_9sb7jt3f';
+
+// hackery to fix bug in chrome-devtools-frontend
+// https://github.com/GoogleChrome/lighthouse/issues/73#issuecomment-309159928
+/*global self*/
+self.setImmediate = function(callback, ...argsForCallback) {
+    Promise.resolve().then(() => callback(...argsForCallback));
+    return 0;
+};
 
 // Use connect method to connect to the Server
 const insertDocuments = function(db, collection, doc, callback) {
@@ -19,23 +25,22 @@ const insertDocuments = function(db, collection, doc, callback) {
     });
 };
 const connectToDB = (collection, doc) => {
+    const dbURL = 'mongodb://heroku_9sb7jt3f:i25u4fst07hgnvcnrb25kba3pj@ds031607.mlab.com:31607/heroku_9sb7jt3f';
     console.log('Trying to connect to MongoDB server.');
-    return MongoClient.connect(url,function(err, db) {
+    return MongoClient.connect(dbURL,function(err, db) {
         assert.equal(null, err); 
-        console.log('Connected correctly to server');
+        console.log('Connected correctly to server.');
         insertDocuments(db, collection, doc, function() {
             db.close();
         });
     });
 };
 
-let chromeLauncher;
-
 /**
- * Start cL
+ * Start Pagespeed report
  */
-const startPS = function() {
-    got( 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed?url=https://willowtreeapps.com&strategy=mobile&key=AIzaSyCimlxrolGkuhGYp5JF_HJVUB0QrZtNzyo')
+async function startPS(url) {
+    got( `https://www.googleapis.com/pagespeedonline/v2/runPagespeed?url=${url}&strategy=mobile&key=AIzaSyCimlxrolGkuhGYp5JF_HJVUB0QrZtNzyo`)
       .then(response => {
           console.log('Analyzing Pagespeed Metrics');
           connectToDB('pagespeed', JSON.parse(response.body));
@@ -46,29 +51,13 @@ const startPS = function() {
       });
 };
 /**
- * Start cL
+ * Start Chrome and Lighthouse
  */
 const startCL = function() {
-    chromeLauncher = new ChromeLauncher();
-    return chromeLauncher.run().then(_ => {
-     // startServer();
-        return runLighthouse()
+        return runLighthouse('https://willowtreeapps.com')
        .then(handleOk)
-       .then(stopCL)
        .catch(handleError);
-    });
-};
-
-/**
- * Stop cL
- */
-const stopCL = function() {
-  // connect.serverClose();
-    console.log('trying to kill');
-    chromeLauncher.kill();
-    chromeLauncher = null;
-    console.log('killed');
-};
+    }
 
 const getOverallScore = function (lighthouseResults) {    
     const scoredAggregations = lighthouseResults.aggregations.filter(a => a.scored);
@@ -112,12 +101,27 @@ const getRequiredAuditMetrics = function(metrics) {
 /**
  * Run lighthouse
  */
-const runLighthouse = function() {
-    const url = 'https://willowtreeapps.com';
-  //const url = `http://localhost:${PORT}/index.html`;
-    const lighthouseOptions = {/*logLevel: 'info',*/ output: 'json',}; // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
-    //log.setLevel(lighthouseOptions.logLevel);
-    return lighthouse(url, lighthouseOptions, perfConfig);
+async function runLighthouse(url) {
+    // available options - https://github.com/GoogleChrome/lighthouse/#cli-options
+    console.log("Launching Chrome.")
+    const chrome = await chromeLauncher.launch({
+        port: 9222,
+        chromeFlags: ['--headless', '--disable-gpu', '--remote-debugging-port=9222',],
+    });
+    const lighthouseOptions = {
+      output: 'json',
+      port: chrome.port,
+    };
+    console.log("Lighthouse debugging started on port", chrome.port)
+    const results = await lighthouse(url, lighthouseOptions, perfConfig);
+    process.on('exit', (e) => {
+      console.log('Lighthouse stopped: ', e);
+    });
+    process.on('uncaughtException', (e) => {
+      console.log('Chrome exiting. Caught exception: ', e);
+    });
+    await chrome.kill();
+    return results;
 };
 
 /**
@@ -133,19 +137,20 @@ const handleOk = function(results) {
     connectToDB('lighthouse', metrics);        
   // TODO: use lighthouse results for checking your performance expectations.
   // e.g. process.exit(1) or throw Error if score falls below a certain threshold.
-    return results;
+  //return results;
 };
 
 /**
  * Handle error
  */
 const handleError = function(e) {
-    stopCL();
-    console.error(e); // eslint-disable-line no-console
+    console.error(e);
     throw e; // Throw to exit process with status 1.
 };
 
-startPS();
-startCL();
+const runReports = url => {
+  startPS(url), startCL(url);
+}
 
+runReports('https://willowtreeapps.com');
 

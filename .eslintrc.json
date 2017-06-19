@@ -7,6 +7,7 @@
   "parserOptions": {
     "sourceType": "module"
   },
+  "plugins": ["async-await"],
   "rules": {
     "indent": [
       "error",
@@ -32,6 +33,8 @@
       "error",
       "always"
     ],
-    "no-console": "off"
+    "no-console": "off",
+    "async-await/space-after-async": 2,
+    "async-await/space-after-await": 2
   }
 }
