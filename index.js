@@ -109,7 +109,7 @@ async function runLighthouse(url) {
     console.log("Launching Chrome.")
     const chrome = await chromeLauncher.launch({
         port: 9222,
-        chromeFlags: ['--headless', '--disable-gpu', '--remote-debugging-port=9222',],
+        chromeFlags: ['--headless', '--disable-gpu', '--host-rules MAP * 127.0.0.1, EXCLUDE localhost'],
     });
     const lighthouseOptions = {
       output: 'json',
