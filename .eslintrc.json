@@ -1,40 +1,21 @@
 {
-  "env": {
-    "es6": true,
-    "node": true
-  },
-  "extends": "eslint:recommended",
-  "parserOptions": {
-    "sourceType": "module"
-  },
-  "plugins": ["async-await"],
-  "rules": {
-    "indent": [
-      "error",
-      4
-    ],
-    "linebreak-style": [
-      "error",
-      "unix"
-    ],
-    "quotes": [
-      "error",
-      "single"
-    ],
-    "semi": [
-      "error",
-      "always"
-    ],
-    "comma-dangle": [
-      "error",
-      "always"
-    ],
-    "no-cond-assign": [
-      "error",
-      "always"
-    ],
-    "no-console": "off",
-    "async-await/space-after-async": 2,
-    "async-await/space-after-await": 2
-  }
+    "env": {
+        "es6": true,
+        "node": true
+    },
+    "extends": "eslint:recommended",
+    "presets": ["es2015", "es2017"],
+    "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2017
+    },
+    "rules": {
+        "keyword-spacing": ["error", { "before": true }],
+        "indent": ["error", 4],
+        "linebreak-style": ["error", "unix"],
+        "quotes": ["error", "single"],
+        "semi": ["error", "always"],
+        "no-cond-assign": ["error", "always"],
+        "no-console": "off"
+    }
 }
